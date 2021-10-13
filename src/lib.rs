@@ -15,19 +15,20 @@
 
 */
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
-#[cfg(feature = "std")]
-pub mod std;
-
-#[cfg(feature = "std")]
-pub use crate::std::*;
-
 use codec::{Decode, Encode};
+pub use sp_core::H256 as Hash;
+
+// re-export useful types
+pub use extrinsic::xt_primitives::{GenericAddress, GenericExtra, UncheckedExtrinsicV4};
+
+pub use crate::api::*;
 
 #[macro_use]
 pub mod extrinsic;
 pub mod utils;
+pub mod rpc;
+pub mod node_metadata;
+pub mod api;
 
 pub extern crate sp_runtime;
 
@@ -38,10 +39,6 @@ pub type Moment = u64;
 /// Index of a transaction.
 //fixme: make generic
 pub type Index = u32;
-
-// re-export useful types
-pub use extrinsic::xt_primitives::{GenericAddress, GenericExtra, UncheckedExtrinsicV4};
-pub use sp_core::H256 as Hash;
 
 //fixme: make generic
 pub type Balance = u128;
