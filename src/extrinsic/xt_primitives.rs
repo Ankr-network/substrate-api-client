@@ -17,11 +17,9 @@
 
 use sp_std::prelude::*;
 
-#[cfg(feature = "std")]
 use std::fmt;
 
 use codec::{Compact, Decode, Encode, Error, Input};
-//use indices::address::Address;
 use sp_core::blake2_256;
 use sp_core::H256;
 use sp_runtime::{generic::Era, MultiSignature};
@@ -37,8 +35,7 @@ pub type GenericAddress = sp_runtime::MultiAddress<AccountId, ()>;
 /// Order is (CheckVersion, CheckGenesis, Check::Era, CheckNonce, CheckWeight, transactionPayment::ChargeTransactionPayment).
 /// This can be locked up in the System module. Fields that are merely PhantomData are not encoded and are
 /// therefore omitted here.
-#[cfg_attr(feature = "std", derive(Debug))]
-#[derive(Decode, Encode, Clone, Eq, PartialEq)]
+#[derive(Decode, Debug, Encode, Clone, Eq, PartialEq)]
 pub struct GenericExtra(Era, Compact<u32>, Compact<u128>);
 
 impl GenericExtra {
@@ -106,7 +103,6 @@ where
         }
     }
 
-    #[cfg(feature = "std")]
     pub fn hex_encode(&self) -> String {
         let mut hex_str = hex::encode(self.encode());
         hex_str.insert_str(0, "0x");
@@ -114,7 +110,6 @@ where
     }
 }
 
-#[cfg(feature = "std")]
 impl<Call> fmt::Debug for UncheckedExtrinsicV4<Call>
 where
     Call: fmt::Debug,
