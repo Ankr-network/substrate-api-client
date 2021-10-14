@@ -17,6 +17,7 @@
 
 pub extern crate frame_support;
 pub extern crate frame_system;
+pub extern crate parity_util_mem;
 pub extern crate sp_core;
 pub extern crate sp_runtime;
 pub extern crate sp_version;
