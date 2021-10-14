@@ -49,6 +49,7 @@ where
     pub genesis_hash: Hash,
     pub metadata: Metadata,
     pub spec_version: u32,
+    pub transaction_version: u32,
     client: Client,
 }
 
@@ -65,13 +66,14 @@ where
             .map(Metadata::try_from)??;
         debug!("Metadata: {:?}", metadata);
 
-        let spec_version = Self::_get_spec_version(&client).await?;
+        let (spec_version, transaction_version) = Self::_get_runtime_version(&client).await?;
         info!("Runtime version: {:?}", spec_version);
 
         Ok(Self {
             genesis_hash,
             metadata,
             spec_version,
+            transaction_version,
             client,
         })
     }
@@ -86,7 +88,7 @@ where
         }
     }
 
-    async fn _get_spec_version(client: &Client) -> ApiResult<u32> {
+    async fn _get_runtime_version(client: &Client) -> ApiResult<(u32, u32)> {
         let version =
             Self::_get_request(client, "state_getRuntimeVersion", json_req::null_params()).await?;
 
@@ -96,9 +98,10 @@ where
                 .and_then(|r| {
                     r["specVersion"]
                         .as_u64()
+                        .zip(r["transactionVersion"].as_u64())
                         .ok_or_else(|| ApiClientError::RuntimeVersion)
                 })
-                .map(|v| v as u32),
+                .map(|(s, v)| (s as u32, v as u32)),
             None => Err(ApiClientError::RuntimeVersion),
         }
     }
@@ -132,7 +135,9 @@ where
     }
 
     pub async fn get_spec_version(&self) -> ApiResult<u32> {
-        Self::_get_spec_version(&self.client).await
+        Self::_get_runtime_version(&self.client)
+            .await
+            .map(|(x, _)| x)
     }
 
     pub async fn get_genesis_hash(&self) -> ApiResult<Hash> {
