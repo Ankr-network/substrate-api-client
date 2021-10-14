@@ -21,7 +21,6 @@
 pub extern crate codec;
 pub extern crate log;
 
-pub mod balances;
 pub mod xt_primitives;
 
 pub type CallIndex = [u8; 2];
