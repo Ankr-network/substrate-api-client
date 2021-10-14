@@ -32,7 +32,9 @@ pub fn num_params(number: Option<u32>) -> JsonRpcParams<'static> {
 
 pub fn hash_params(hash: Option<Hash>) -> JsonRpcParams<'static> {
     match hash {
-        Some(h) => JsonRpcParams::Array(vec![JsonValue::String(h.to_string())]),
+        Some(h) => JsonRpcParams::Array(vec![JsonValue::String(
+            "0x".to_owned() + hex::encode(h.as_bytes()).as_str(),
+        )]),
         None => JsonRpcParams::Array(vec![JsonValue::Null]),
     }
 }
