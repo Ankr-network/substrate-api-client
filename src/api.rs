@@ -48,7 +48,6 @@ where
 {
     pub genesis_hash: Hash,
     pub metadata: Metadata,
-    pub runtime_version: RuntimeVersion,
     client: Client,
 }
 
@@ -65,13 +64,9 @@ where
             .map(Metadata::try_from)??;
         debug!("Metadata: {:?}", metadata);
 
-        let runtime_version = Self::_get_runtime_version(&client).await?;
-        info!("Runtime Version: {:?}", runtime_version);
-
         Ok(Self {
             genesis_hash,
             metadata,
-            runtime_version,
             client,
         })
     }
@@ -83,16 +78,6 @@ where
         match genesis {
             Some(g) => Hash::from_hex(g).map_err(|e| e.into()),
             None => Err(ApiClientError::Genesis),
-        }
-    }
-
-    async fn _get_runtime_version(client: &Client) -> ApiResult<RuntimeVersion> {
-        let version =
-            Self::_get_request(client, "state_getRuntimeVersion", json_req::null_params()).await?;
-
-        match version {
-            Some(v) => serde_json::from_str(&v).map_err(|e| e.into()),
-            None => Err(ApiClientError::RuntimeVersion),
         }
     }
 
@@ -122,12 +107,6 @@ where
 
     pub async fn get_metadata(&self) -> ApiResult<RuntimeMetadataPrefixed> {
         Self::_get_metadata(&self.client).await
-    }
-
-    pub async fn get_spec_version(&self) -> ApiResult<u32> {
-        Self::_get_runtime_version(&self.client)
-            .await
-            .map(|v| v.spec_version)
     }
 
     pub async fn get_genesis_hash(&self) -> ApiResult<Hash> {
