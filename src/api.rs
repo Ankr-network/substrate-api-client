@@ -337,4 +337,6 @@ pub enum ApiClientError {
     TryFromIntError,
     #[error("Error while sending extrinsic: {0}")]
     Extrinsic(String),
+    #[error("Custom error: {0}")]
+    Custom(String),
 }
