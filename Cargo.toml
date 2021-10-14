@@ -9,24 +9,24 @@ async-trait = "0.1.51"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 jsonrpsee-ws-client = "0.3.1"
 log = { version = "0.4" }
-metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["std", "v13", "v14"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 thiserror = { version = "1.0" }
 
 # Substrate dependencies
+balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", package = "pallet-balances" }
 codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false, features = ['derive'] }
-frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "master" }
-frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "frame-system" }
-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-balances" }
-parity-util-mem = "0.10.2"
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.11" }
+frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", package = "frame-system" }
+metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["std", "v13", "v14"] }
+parity-util-mem = { version = "0.10.2", default-features = false }
 primitive-types = { version = "0.10.1", features = ["codec"] }
 scale-info = "1.0.0"
-sp-application-crypto = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
-sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
-sp-rpc = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-version = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "sp-version" }
-staking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-staking" }
-transaction-payment = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-transaction-payment" }
+sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", features = ["full_crypto"] }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", features = ["full_crypto"] }
+sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11" }
+sp-version = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", package = "sp-version" }
+staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", package = "pallet-staking" }
+transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.11", package = "pallet-transaction-payment" }

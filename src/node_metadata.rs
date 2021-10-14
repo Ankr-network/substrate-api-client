@@ -59,6 +59,7 @@ pub struct Metadata {
     modules: HashMap<String, ModuleMetadata>,
     modules_with_calls: HashMap<String, ModuleWithCalls>,
     modules_with_errors: HashMap<String, ModuleWithErrors>,
+    modules_with_events: HashMap<String, ModuleWithEvents>,
     modules_with_constants: HashMap<String, ModuleWithConstants>,
 }
 
@@ -103,6 +104,27 @@ impl Metadata {
 
     pub fn module_with_errors(&self, module_index: u8) -> Result<&ModuleWithErrors, MetadataError> {
         self.modules_with_errors
+            .values()
+            .find(|&module| module.index == module_index)
+            .ok_or(MetadataError::ModuleWithErrorsNotFound(module_index))
+    }
+
+    pub fn modules_with_events(&self) -> impl Iterator<Item = &ModuleWithEvents> {
+        self.modules_with_events.values()
+    }
+
+    pub fn module_with_events_by_name<S>(&self, name: S) -> Result<&ModuleWithEvents, MetadataError>
+    where
+        S: ToString,
+    {
+        let name = name.to_string();
+        self.modules_with_events
+            .get(&name)
+            .ok_or(MetadataError::ModuleNotFound(name))
+    }
+
+    pub fn module_with_events(&self, module_index: u8) -> Result<&ModuleWithEvents, MetadataError> {
+        self.modules_with_events
             .values()
             .find(|&module| module.index == module_index)
             .ok_or(MetadataError::ModuleWithErrorsNotFound(module_index))
@@ -308,6 +330,37 @@ impl ModuleWithErrors {
         );
 
         for e in self.errors.values() {
+            println!("Name: {}", e);
+        }
+        println!()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ModuleWithEvents {
+    pub index: u8,
+    pub name: String,
+    pub events: HashMap<u8, String>,
+}
+
+impl ModuleWithEvents {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn event(&self, index: u8) -> Result<&String, MetadataError> {
+        self.events
+            .get(&index)
+            .ok_or(MetadataError::ErrorNotFound(index))
+    }
+
+    pub fn print(&self) {
+        println!(
+            "----------------- Events for Module: {} -----------------\n",
+            self.name()
+        );
+
+        for e in self.events.values() {
             println!("Name: {}", e);
         }
         println!()
@@ -603,6 +656,7 @@ fn parse_metadata_v13(_meta: metadata::v13::RuntimeMetadataV13) -> Metadata {
 fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionError> {
     let mut modules = HashMap::new();
     let mut modules_with_calls = HashMap::new();
+    let mut modules_with_events = HashMap::new();
     let mut modules_with_errors = HashMap::new();
     let mut modules_with_constants = HashMap::new();
 
@@ -639,7 +693,7 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
                 }
                 _ => {
                     log::warn!(
-                        "Skipped parsing calls for module {}, calls type ({}) is not variant",
+                        "Skipped parsing calls for module {}, type ({}) is not variant",
                         module_name,
                         calls.ty.id()
                     );
@@ -656,6 +710,33 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
             );
         }
 
+        if let Some(events) = module.event {
+            let mut event_map = HashMap::new();
+            match type_registry[events.ty.id() as usize].ty().type_def() {
+                TypeDef::Variant(v) => {
+                    for (index, call) in v.variants().iter().enumerate() {
+                        event_map.insert(index as u8, call.name().clone());
+                    }
+                }
+                _ => {
+                    log::warn!(
+                        "Skipped parsing events for module {}, type ({}) is not variant",
+                        module_name,
+                        events.ty.id()
+                    );
+                }
+            };
+
+            modules_with_events.insert(
+                module_name.clone(),
+                ModuleWithEvents {
+                    index: module.index,
+                    name: module_name.clone(),
+                    events: event_map,
+                },
+            );
+        }
+
         if let Some(errors) = module.error {
             let mut error_map = HashMap::new();
 
@@ -667,7 +748,7 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
                 }
                 _ => {
                     log::warn!(
-                        "Skipped parsing calls for module {}, calls type ({}) is not variant",
+                        "Skipped parsing errors for module {}, type ({}) is not variant",
                         module_name,
                         errors.ty.id()
                     );
@@ -711,6 +792,7 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
     Ok(Metadata {
         modules,
         modules_with_calls,
+        modules_with_events,
         modules_with_errors,
         modules_with_constants,
     })
