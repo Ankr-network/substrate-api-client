@@ -15,6 +15,12 @@
 
 */
 
+pub extern crate frame_support;
+pub extern crate frame_system;
+pub extern crate sp_core;
+pub extern crate sp_runtime;
+pub extern crate sp_version;
+
 use codec::{Decode, Encode};
 pub use sp_core::H256 as Hash;
 
@@ -29,10 +35,6 @@ pub mod api;
 pub mod node_metadata;
 pub mod rpc;
 pub mod utils;
-
-pub extern crate frame_support;
-pub extern crate frame_system;
-pub extern crate sp_runtime;
 
 /// The block number type used in this runtime.
 pub type BlockNumber = u64;
