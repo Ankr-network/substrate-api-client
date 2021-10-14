@@ -23,6 +23,7 @@ pub extern crate sp_runtime;
 pub extern crate sp_version;
 
 use codec::{Decode, Encode};
+pub use jsonrpsee_ws_client::types as jsonrpsee_types;
 pub use sp_core::H256 as Hash;
 
 // re-export useful types
