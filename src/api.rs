@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use codec::{Decode, Encode};
 use jsonrpsee_ws_client::types::error::Error as JsonRpcWsError;
 use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
+use jsonrpsee_ws_client::types::JsonValue;
 use log::{debug, info};
 pub use metadata::RuntimeMetadataPrefixed;
 use serde::de::DeserializeOwned;
@@ -31,7 +32,7 @@ pub type ApiResult<T> = Result<T, ApiClientError>;
 #[async_trait]
 pub trait RpcClient {
     /// Sends a RPC request that returns a String
-    async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<String>;
+    async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue>;
 
     /// Send a RPC request that returns a SHA256 hash
     async fn send_extrinsic(
@@ -82,7 +83,7 @@ where
         let genesis =
             Self::_get_request(client, "chain_getBlockHash", json_req::num_params(Some(0))).await?;
 
-        match genesis {
+        match genesis.and_then(|g| g.as_str().map(|s| s.to_owned())) {
             Some(g) => Hash::from_hex(g).map_err(|e| e.into()),
             None => Err(ApiClientError::Genesis),
         }
@@ -93,21 +94,19 @@ where
             Self::_get_request(client, "state_getRuntimeVersion", json_req::null_params()).await?;
 
         match version {
-            Some(v) => serde_json::from_str::<serde_json::Value>(v.as_str())
-                .map_err(|e| e.into())
-                .and_then(|r| {
-                    r["specVersion"]
-                        .as_u64()
-                        .zip(r["transactionVersion"].as_u64())
-                        .ok_or_else(|| ApiClientError::RuntimeVersion)
-                })
+            Some(r) => r["specVersion"]
+                .as_u64()
+                .zip(r["transactionVersion"].as_u64())
+                .ok_or_else(|| ApiClientError::RuntimeVersion)
                 .map(|(s, v)| (s as u32, v as u32)),
             None => Err(ApiClientError::RuntimeVersion),
         }
     }
 
     async fn _get_metadata(client: &Client) -> ApiResult<RuntimeMetadataPrefixed> {
-        let meta = Self::_get_request(client, "state_getMetadata", json_req::null_params()).await?;
+        let meta = Self::_get_request(client, "state_getMetadata", json_req::null_params())
+            .await?
+            .and_then(|m| m.as_str().map(str::to_owned));
 
         if meta.is_none() {
             return Err(ApiClientError::MetadataFetch);
@@ -121,13 +120,12 @@ where
         client: &Client,
         method: &str,
         params: JsonRpcParams<'_>,
-    ) -> ApiResult<Option<String>> {
-        let str = client.get_request(method, params).await?;
-
-        match &str[..] {
-            "null" => Ok(None),
-            _ => Ok(Some(str)),
+    ) -> ApiResult<Option<JsonValue>> {
+        let result = client.get_request(method, params).await?;
+        if result.is_null() {
+            return Ok(None);
         }
+        Ok(Some(result))
     }
 
     pub async fn get_metadata(&self) -> ApiResult<RuntimeMetadataPrefixed> {
@@ -163,7 +161,7 @@ where
         let h = self
             .get_request("chain_getFinalizedHead", JsonRpcParams::NoParams)
             .await?;
-        match h {
+        match h.and_then(|v| v.as_str().map(str::to_owned)) {
             Some(hash) => Ok(Some(Hash::from_hex(hash)?)),
             None => Ok(None),
         }
@@ -177,7 +175,7 @@ where
             .get_request("chain_getHeader", json_req::hash_params(hash))
             .await?;
         match h {
-            Some(hash) => Ok(Some(serde_json::from_str(&hash)?)),
+            Some(v) => Ok(Some(serde_json::from_value(v)?)),
             None => Ok(None),
         }
     }
@@ -203,7 +201,7 @@ where
             .get_request("chain_getBlock", json_req::hash_params(hash))
             .await?;
         match b {
-            Some(block) => Ok(Some(serde_json::from_str(&block)?)),
+            Some(block) => Ok(Some(serde_json::from_value(block)?)),
             None => Ok(None),
         }
     }
@@ -212,7 +210,7 @@ where
         &self,
         method: &str,
         params: JsonRpcParams<'_>,
-    ) -> ApiResult<Option<String>> {
+    ) -> ApiResult<Option<JsonValue>> {
         Self::_get_request(&self.client, method, params).await
     }
 
@@ -295,7 +293,7 @@ where
             )
             .await?;
 
-        match s {
+        match s.and_then(|v| v.as_str().map(str::to_owned)) {
             Some(storage) => Ok(Some(Vec::from_hex(storage)?)),
             None => Ok(None),
         }

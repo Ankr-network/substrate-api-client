@@ -36,8 +36,8 @@ impl WsRpcClient {
 
 #[async_trait]
 impl RpcClientTrait for WsRpcClient {
-    async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<String> {
-        let str: String = self.client.request(method, params).await?;
+    async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue> {
+        let str: JsonValue = self.client.request(method, params).await?;
         Ok(str)
     }
 
