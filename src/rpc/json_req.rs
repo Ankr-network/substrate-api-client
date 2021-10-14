@@ -15,9 +15,9 @@
 
 */
 
-use jsonrpsee_ws_client::types::JsonValue;
-use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
 use crate::Hash;
+use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
+use jsonrpsee_ws_client::types::JsonValue;
 use serde_json::{json, to_value};
 use sp_core::storage::StorageKey;
 

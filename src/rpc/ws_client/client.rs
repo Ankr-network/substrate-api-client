@@ -2,10 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use jsonrpsee_ws_client::types::{Error as JsonRpcWsError, JsonValue, Subscription};
 use jsonrpsee_ws_client::types::traits::{Client, SubscriptionClient};
 use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
-use log::{error};
+use jsonrpsee_ws_client::types::{Error as JsonRpcWsError, JsonValue, Subscription};
+use log::error;
 use sp_core::H256 as Hash;
 
 use crate::ApiClientError;
@@ -46,11 +46,14 @@ impl RpcClientTrait for WsRpcClient {
         xt_hex_prefixed: String,
         exit_on: XtStatus,
     ) -> ApiResult<Option<sp_core::H256>> {
-        let mut sub: Subscription<serde_json::Value> = self.client.subscribe(
-            "author_submitAndWatchExtrinsic",
-            JsonRpcParams::Array(vec![JsonValue::String(xt_hex_prefixed)]),
-            "author_unwatchExtrinsic",
-        ).await?;
+        let mut sub: Subscription<serde_json::Value> = self
+            .client
+            .subscribe(
+                "author_submitAndWatchExtrinsic",
+                JsonRpcParams::Array(vec![JsonValue::String(xt_hex_prefixed)]),
+                "author_unwatchExtrinsic",
+            )
+            .await?;
 
         loop {
             let maybe_update = sub.next().await?;
@@ -65,13 +68,16 @@ impl RpcClientTrait for WsRpcClient {
                         None => Ok(None),
                         Some(x) => Hash::from_hex(x)
                             .map(|h| Some(h))
-                            .map_err(|e| ApiClientError::InvalidHexString(e))
+                            .map_err(|e| ApiClientError::InvalidHexString(e)),
                     };
                 }
             } else {
-                let msg = format!("Subscription ended before reaching desired status {:?}", exit_on);
+                let msg = format!(
+                    "Subscription ended before reaching desired status {:?}",
+                    exit_on
+                );
                 error!("{}", msg);
-                return Err(ApiClientError::Extrinsic(msg))
+                return Err(ApiClientError::Extrinsic(msg));
             }
         }
     }
@@ -124,7 +130,7 @@ fn status_numeric(status: &XtStatus) -> i32 {
         XtStatus::Ready => 0,
         XtStatus::Future => -1,
         XtStatus::Error => -1,
-        XtStatus::Unknown => -1
+        XtStatus::Unknown => -1,
     }
 }
 

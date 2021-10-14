@@ -10,22 +10,21 @@ use serde::de::DeserializeOwned;
 pub use serde_json::Value;
 pub use sp_core::crypto::Pair;
 pub use sp_core::storage::StorageKey;
-pub use sp_runtime::{
-    AccountId32 as AccountId, generic::SignedBlock, MultiSignature, MultiSigner,
-    traits::IdentifyAccount,
-};
 pub use sp_runtime::traits::{Block, Header};
+pub use sp_runtime::{
+    generic::SignedBlock, traits::IdentifyAccount, AccountId32 as AccountId, MultiSignature,
+    MultiSigner,
+};
 pub use sp_std::prelude::*;
 pub use sp_version::RuntimeVersion;
 pub use transaction_payment::FeeDetails;
 
-use crate::{Balance, extrinsic, node_metadata};
-use crate::{AccountData, AccountInfo, Hash};
 pub use crate::node_metadata::Metadata;
 use crate::rpc::json_req;
 pub use crate::rpc::XtStatus;
 pub use crate::utils::FromHexString;
-
+use crate::{extrinsic, node_metadata, Balance};
+use crate::{AccountData, AccountInfo, Hash};
 
 pub type ApiResult<T> = Result<T, ApiClientError>;
 
@@ -35,11 +34,17 @@ pub trait RpcClient {
     async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<String>;
 
     /// Send a RPC request that returns a SHA256 hash
-    async fn send_extrinsic(&self, xthex_prefixed: String, exit_on: XtStatus) -> ApiResult<Option<Hash>>;
+    async fn send_extrinsic(
+        &self,
+        xthex_prefixed: String,
+        exit_on: XtStatus,
+    ) -> ApiResult<Option<Hash>>;
 }
 
 #[derive(Clone)]
-pub struct Api<Client> where Client: RpcClient,
+pub struct Api<Client>
+where
+    Client: RpcClient,
 {
     pub genesis_hash: Hash,
     pub metadata: Metadata,
@@ -47,13 +52,17 @@ pub struct Api<Client> where Client: RpcClient,
     client: Client,
 }
 
-impl<Client> Api<Client> where Client: RpcClient,
+impl<Client> Api<Client>
+where
+    Client: RpcClient,
 {
     pub async fn new(client: Client) -> ApiResult<Self> {
         let genesis_hash = Self::_get_genesis_hash(&client).await?;
         info!("Got genesis hash: {:?}", genesis_hash);
 
-        let metadata = Self::_get_metadata(&client).await.map(Metadata::try_from)??;
+        let metadata = Self::_get_metadata(&client)
+            .await
+            .map(Metadata::try_from)??;
         debug!("Metadata: {:?}", metadata);
 
         let runtime_version = Self::_get_runtime_version(&client).await?;
@@ -68,7 +77,8 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     async fn _get_genesis_hash(client: &Client) -> ApiResult<Hash> {
-        let genesis = Self::_get_request(client, "chain_getBlockHash", json_req::num_params(Some(0))).await?;
+        let genesis =
+            Self::_get_request(client, "chain_getBlockHash", json_req::num_params(Some(0))).await?;
 
         match genesis {
             Some(g) => Hash::from_hex(g).map_err(|e| e.into()),
@@ -77,7 +87,8 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     async fn _get_runtime_version(client: &Client) -> ApiResult<RuntimeVersion> {
-        let version = Self::_get_request(client, "state_getRuntimeVersion", json_req::null_params()).await?;
+        let version =
+            Self::_get_request(client, "state_getRuntimeVersion", json_req::null_params()).await?;
 
         match version {
             Some(v) => serde_json::from_str(&v).map_err(|e| e.into()),
@@ -96,7 +107,11 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     // low level access
-    async fn _get_request(client: &Client, method: &str, params: JsonRpcParams<'_>) -> ApiResult<Option<String>> {
+    async fn _get_request(
+        client: &Client,
+        method: &str,
+        params: JsonRpcParams<'_>,
+    ) -> ApiResult<Option<String>> {
         let str = client.get_request(method, params).await?;
 
         match &str[..] {
@@ -110,7 +125,9 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     pub async fn get_spec_version(&self) -> ApiResult<u32> {
-        Self::_get_runtime_version(&self.client).await.map(|v| v.spec_version)
+        Self::_get_runtime_version(&self.client)
+            .await
+            .map(|v| v.spec_version)
     }
 
     pub async fn get_genesis_hash(&self) -> ApiResult<Hash> {
@@ -127,12 +144,15 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     pub async fn get_account_data(&self, address: &AccountId) -> ApiResult<Option<AccountData>> {
-        self.get_account_info(address).await
+        self.get_account_info(address)
+            .await
             .map(|info| info.map(|i| i.data))
     }
 
     pub async fn get_finalized_head(&self) -> ApiResult<Option<Hash>> {
-        let h = self.get_request("chain_getFinalizedHead", JsonRpcParams::NoParams).await?;
+        let h = self
+            .get_request("chain_getFinalizedHead", JsonRpcParams::NoParams)
+            .await?;
         match h {
             Some(hash) => Ok(Some(Hash::from_hex(hash)?)),
             None => Ok(None),
@@ -140,10 +160,12 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     pub async fn get_header<H>(&self, hash: Option<Hash>) -> ApiResult<Option<H>>
-        where
-            H: Header + DeserializeOwned,
+    where
+        H: Header + DeserializeOwned,
     {
-        let h = self.get_request("chain_getHeader", json_req::hash_params(hash)).await?;
+        let h = self
+            .get_request("chain_getHeader", json_req::hash_params(hash))
+            .await?;
         match h {
             Some(hash) => Ok(Some(serde_json::from_str(&hash)?)),
             None => Ok(None),
@@ -151,10 +173,11 @@ impl<Client> Api<Client> where Client: RpcClient,
     }
 
     pub async fn get_block<B>(&self, hash: Option<Hash>) -> ApiResult<Option<B>>
-        where
-            B: Block + DeserializeOwned,
+    where
+        B: Block + DeserializeOwned,
     {
-        Self::get_signed_block(self, hash).await
+        Self::get_signed_block(self, hash)
+            .await
             .map(|sb_opt| sb_opt.map(|sb| sb.block))
     }
 
@@ -163,17 +186,23 @@ impl<Client> Api<Client> where Client: RpcClient,
     /// the `GrandpaConfig.justification_period` in a node's service.rs.
     /// The Justification may be none.
     pub async fn get_signed_block<B>(&self, hash: Option<Hash>) -> ApiResult<Option<SignedBlock<B>>>
-        where
-            B: Block + DeserializeOwned,
+    where
+        B: Block + DeserializeOwned,
     {
-        let b = self.get_request("chain_getBlock", json_req::hash_params(hash)).await?;
+        let b = self
+            .get_request("chain_getBlock", json_req::hash_params(hash))
+            .await?;
         match b {
             Some(block) => Ok(Some(serde_json::from_str(&block)?)),
             None => Ok(None),
         }
     }
 
-    pub async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<Option<String>> {
+    pub async fn get_request(
+        &self,
+        method: &str,
+        params: JsonRpcParams<'_>,
+    ) -> ApiResult<Option<String>> {
         Self::_get_request(&self.client, method, params).await
     }
 
@@ -249,7 +278,12 @@ impl<Client> Api<Client> where Client: RpcClient,
         key: StorageKey,
         at_block: Option<Hash>,
     ) -> ApiResult<Option<Vec<u8>>> {
-        let s = self.get_request("state_getStorage", json_req::state_get_storage(key, at_block)).await?;
+        let s = self
+            .get_request(
+                "state_getStorage",
+                json_req::state_get_storage(key, at_block),
+            )
+            .await?;
 
         match s {
             Some(storage) => Ok(Some(Vec::from_hex(storage)?)),

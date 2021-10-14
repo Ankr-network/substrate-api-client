@@ -25,11 +25,13 @@ pub use crate::api::*;
 
 #[macro_use]
 pub mod extrinsic;
-pub mod utils;
-pub mod rpc;
-pub mod node_metadata;
 pub mod api;
+pub mod node_metadata;
+pub mod rpc;
+pub mod utils;
 
+pub extern crate frame_support;
+pub extern crate frame_system;
 pub extern crate sp_runtime;
 
 /// The block number type used in this runtime.

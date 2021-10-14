@@ -18,7 +18,10 @@ use std::{collections::HashMap, convert::TryFrom, marker::PhantomData};
 
 use codec::{Decode, Encode};
 use log::*;
-use metadata::{META_RESERVED, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, StorageHasher, RuntimeMetadataV14};
+use metadata::{
+    RuntimeMetadata, RuntimeMetadataPrefixed, RuntimeMetadataV14, StorageEntryType, StorageHasher,
+    META_RESERVED,
+};
 use scale_info::TypeDef;
 use serde::ser::Serialize;
 use sp_core::storage::StorageKey;
@@ -60,29 +63,38 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn module<S>(&self, name: S) -> Result<&ModuleMetadata, MetadataError> where S: ToString {
+    pub fn module<S>(&self, name: S) -> Result<&ModuleMetadata, MetadataError>
+    where
+        S: ToString,
+    {
         let name = name.to_string();
         self.modules
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
     }
 
-    pub fn modules_with_calls(&self) -> impl Iterator<Item=&ModuleWithCalls> {
+    pub fn modules_with_calls(&self) -> impl Iterator<Item = &ModuleWithCalls> {
         self.modules_with_calls.values()
     }
 
-    pub fn module_with_calls<S>(&self, name: S) -> Result<&ModuleWithCalls, MetadataError> where S: ToString {
+    pub fn module_with_calls<S>(&self, name: S) -> Result<&ModuleWithCalls, MetadataError>
+    where
+        S: ToString,
+    {
         let name = name.to_string();
         self.modules_with_calls
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
     }
 
-    pub fn modules_with_errors(&self) -> impl Iterator<Item=&ModuleWithErrors> {
+    pub fn modules_with_errors(&self) -> impl Iterator<Item = &ModuleWithErrors> {
         self.modules_with_errors.values()
     }
 
-    pub fn module_with_errors_by_name<S>(&self, name: S) -> Result<&ModuleWithErrors, MetadataError> where S: ToString {
+    pub fn module_with_errors_by_name<S>(&self, name: S) -> Result<&ModuleWithErrors, MetadataError>
+    where
+        S: ToString,
+    {
         let name = name.to_string();
         self.modules_with_errors
             .get(&name)
@@ -96,18 +108,27 @@ impl Metadata {
             .ok_or(MetadataError::ModuleWithErrorsNotFound(module_index))
     }
 
-    pub fn modules_with_constants(&self) -> impl Iterator<Item=&ModuleWithConstants> {
+    pub fn modules_with_constants(&self) -> impl Iterator<Item = &ModuleWithConstants> {
         self.modules_with_constants.values()
     }
 
-    pub fn module_with_constants_by_name<S>(&self, name: S) -> Result<&ModuleWithConstants, MetadataError> where S: ToString {
+    pub fn module_with_constants_by_name<S>(
+        &self,
+        name: S,
+    ) -> Result<&ModuleWithConstants, MetadataError>
+    where
+        S: ToString,
+    {
         let name = name.to_string();
         self.modules_with_constants
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
     }
 
-    pub fn module_with_constants(&self, module_index: u8) -> Result<&ModuleWithConstants, MetadataError> {
+    pub fn module_with_constants(
+        &self,
+        module_index: u8,
+    ) -> Result<&ModuleWithConstants, MetadataError> {
         self.modules_with_constants
             .values()
             .find(|&module| module.index == module_index)
@@ -305,7 +326,7 @@ impl ModuleWithConstants {
         &self.name
     }
 
-    pub fn constants(&self) -> impl Iterator<Item=&ModuleConstantMetadata> {
+    pub fn constants(&self) -> impl Iterator<Item = &ModuleConstantMetadata> {
         self.constants.values()
     }
 
@@ -313,8 +334,8 @@ impl ModuleWithConstants {
         &self,
         constant_name: S,
     ) -> Result<&ModuleConstantMetadata, MetadataError>
-        where
-            S: ToString,
+    where
+        S: ToString,
     {
         let name = constant_name.to_string();
         self.constants
@@ -350,10 +371,7 @@ impl StorageMetadata {
         &self,
     ) -> Result<StorageDoubleMap<K, Q, V>, MetadataError> {
         match &self.ty {
-            StorageEntryType::Map {
-                hashers,
-                ..
-            } => {
+            StorageEntryType::Map { hashers, .. } => {
                 assert_eq!(hashers.len(), 2);
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
                 let storage_prefix = self.storage_prefix.as_bytes().to_vec();
@@ -528,12 +546,9 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             return Err(ConversionError::InvalidPrefix.into());
         }
         match metadata.1 {
-            RuntimeMetadata::V13(meta) => {
-                Ok(parse_metadata_v13(meta))
-            }
+            RuntimeMetadata::V13(meta) => Ok(parse_metadata_v13(meta)),
             RuntimeMetadata::V14(meta) => {
-                parse_metadata_v14(meta)
-                    .map_err(|e| MetadataError::Conversion(e))
+                parse_metadata_v14(meta).map_err(|e| MetadataError::Conversion(e))
             }
             _ => return Err(ConversionError::InvalidVersion.into()),
         }
@@ -601,8 +616,7 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
             let module_prefix = storage.prefix;
             for entry in storage.entries.into_iter() {
                 let storage_prefix = entry.name.clone();
-                let entry =
-                    convert_entry(module_prefix.clone(), storage_prefix.clone(), entry)?;
+                let entry = convert_entry(module_prefix.clone(), storage_prefix.clone(), entry)?;
                 storage_map.insert(storage_prefix, entry);
             }
         }
@@ -624,7 +638,11 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
                     }
                 }
                 _ => {
-                    log::warn!("Skipped parsing calls for module {}, calls type ({}) is not variant", module_name, calls.ty.id());
+                    log::warn!(
+                        "Skipped parsing calls for module {}, calls type ({}) is not variant",
+                        module_name,
+                        calls.ty.id()
+                    );
                 }
             };
 
@@ -648,7 +666,11 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
                     }
                 }
                 _ => {
-                    log::warn!("Skipped parsing calls for module {}, calls type ({}) is not variant", module_name, errors.ty.id());
+                    log::warn!(
+                        "Skipped parsing calls for module {}, calls type ({}) is not variant",
+                        module_name,
+                        errors.ty.id()
+                    );
                 }
             };
 
@@ -665,11 +687,17 @@ fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionEr
         let constants = module.constants;
         let mut constant_map = HashMap::new();
         for (index, constant) in constants.into_iter().enumerate() {
-            constant_map.insert(index as u8, ModuleConstantMetadata {
-                ty: type_registry[constant.ty.id() as usize].ty().path().to_string(),
-                name: constant.name,
-                value: constant.value,
-            });
+            constant_map.insert(
+                index as u8,
+                ModuleConstantMetadata {
+                    ty: type_registry[constant.ty.id() as usize]
+                        .ty()
+                        .path()
+                        .to_string(),
+                    name: constant.name,
+                    value: constant.value,
+                },
+            );
         }
         modules_with_constants.insert(
             module_name.clone(),
