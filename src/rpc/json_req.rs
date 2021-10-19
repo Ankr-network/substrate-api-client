@@ -46,3 +46,17 @@ pub fn null_params() -> JsonRpcParams<'static> {
 pub fn state_get_storage<'a>(key: StorageKey, at_block: Option<Hash>) -> JsonRpcParams<'a> {
     JsonRpcParams::Array(vec![to_value(key).unwrap(), to_value(at_block).unwrap()])
 }
+
+pub fn state_get_keys_paged<'a>(
+    key: StorageKey,
+    count: u32,
+    start_key: Option<StorageKey>,
+    at_block: Option<Hash>,
+) -> JsonRpcParams<'a> {
+    JsonRpcParams::Array(vec![
+        to_value(key).unwrap(),
+        to_value(count).unwrap(),
+        to_value(start_key).unwrap(),
+        to_value(at_block).unwrap(),
+    ])
+}

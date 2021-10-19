@@ -227,6 +227,35 @@ where
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
+    pub async fn get_keys_paged(
+        &self,
+        prefix: StorageKey,
+        count: u32,
+        start_key: Option<StorageKey>,
+        at: Option<Hash>,
+    ) -> ApiResult<Vec<Vec<u8>>> {
+        self.get_request(
+            "state_getKeysPaged",
+            json_req::state_get_keys_paged(prefix, count, start_key, at),
+        )
+        .await?
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_getKeysPaged did not return any data".to_owned())
+        })?
+        .as_array()
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_getKeysPaged returned not an array".to_owned())
+        })?
+        .iter()
+        .map(|v| {
+            v.as_str().ok_or_else(|| {
+                ApiClientError::RpcClient("state_getKeysPaged returned bad array".to_owned())
+            })
+        })
+        .map(|v| v.and_then(|x| hex::decode(x).map_err(|e| e.into())))
+        .collect()
+    }
+
     pub async fn get_storage_map<K: Encode, V: Decode + Clone>(
         &self,
         storage_prefix: &'static str,
