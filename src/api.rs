@@ -227,13 +227,51 @@ where
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
+    pub async fn query_storage_at<V: Decode>(
+        &self,
+        keys: Vec<StorageKey>,
+        at_block: Option<Hash>,
+    ) -> ApiResult<Vec<(StorageKey, StorageKey)>> {
+        self.get_request(
+            "state_queryStorageAt",
+            json_req::state_query_storage_at(keys, at_block),
+        )
+        .await?
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt did not return any data".to_owned())
+        })?
+        .as_array()
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt returned not an array".to_owned())
+        })?
+        .get(0)
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt returned empty array".to_owned())
+        })?
+        .as_object()
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt: unexpected structure".to_owned())
+        })?
+        .get("changes")
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt: no `changes` field".to_owned())
+        })?
+        .as_array()
+        .ok_or_else(|| {
+            ApiClientError::RpcClient("state_queryStorageAt: `changes` is not an array".to_owned())
+        })?
+        .iter()
+        .map(parse_pair)
+        .collect()
+    }
+
     pub async fn get_keys_paged(
         &self,
         prefix: StorageKey,
         count: u32,
         start_key: Option<StorageKey>,
         at: Option<Hash>,
-    ) -> ApiResult<Vec<Vec<u8>>> {
+    ) -> ApiResult<Vec<StorageKey>> {
         self.get_request(
             "state_getKeysPaged",
             json_req::state_get_keys_paged(prefix, count, start_key, at),
@@ -253,6 +291,7 @@ where
             })
         })
         .map(|v| v.and_then(|x| hex::decode(x).map_err(|e| e.into())))
+        .map(|r| r.map(StorageKey))
         .collect()
     }
 
@@ -376,4 +415,26 @@ pub enum ApiClientError {
     Extrinsic(String),
     #[error("Custom error: {0}")]
     Custom(String),
+}
+
+fn parse_pair(v: &Value) -> ApiResult<(StorageKey, StorageKey)> {
+    let v = v
+        .as_array()
+        .ok_or_else(|| ApiClientError::RpcClient("key-value pair is malformed".to_owned()))?;
+    if v.len() != 2 {
+        return Err(ApiClientError::RpcClient(
+            "key-value pair is malformed".to_owned(),
+        ));
+    }
+    let key = hex::decode(
+        v[0].as_str()
+            .ok_or_else(|| ApiClientError::RpcClient("key-value pair has bad key".to_owned()))?
+            .trim_start_matches("0x"),
+    )?;
+    let value = hex::decode(
+        v[1].as_str()
+            .ok_or_else(|| ApiClientError::RpcClient("key-value pair has bad value".to_owned()))?
+            .trim_start_matches("0x"),
+    )?;
+    Ok((StorageKey(key), StorageKey(value)))
 }
