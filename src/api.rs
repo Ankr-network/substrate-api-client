@@ -227,7 +227,7 @@ where
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
-    pub async fn query_storage_at<V: Decode>(
+    pub async fn query_storage_at(
         &self,
         keys: Vec<StorageKey>,
         at_block: Option<Hash>,
