@@ -290,7 +290,7 @@ where
                 ApiClientError::RpcClient("state_getKeysPaged returned bad array".to_owned())
             })
         })
-        .map(|v| v.and_then(|x| hex::decode(x).map_err(|e| e.into())))
+        .map(|v| v.and_then(|x| hex::decode(x.trim_start_matches("0x")).map_err(|e| e.into())))
         .map(|r| r.map(StorageKey))
         .collect()
     }
