@@ -100,7 +100,7 @@ fn parse_status(value: serde_json::Value) -> Result<(XtStatus, Option<String>), 
                 code, error, details
             )))
         }
-        None => match value["params"]["result"].as_object() {
+        None => match value.as_object() {
             Some(obj) => {
                 if let Some(hash) = obj.get("finalized") {
                     log::info!("finalized: {:?}", hash);
@@ -115,7 +115,7 @@ fn parse_status(value: serde_json::Value) -> Result<(XtStatus, Option<String>), 
                     Ok((XtStatus::Unknown, None))
                 }
             }
-            None => match value["params"]["result"].as_str() {
+            None => match value.as_str() {
                 Some("ready") => Ok((XtStatus::Ready, None)),
                 Some("future") => Ok((XtStatus::Future, None)),
                 Some(&_) => Ok((XtStatus::Unknown, None)),
