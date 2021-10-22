@@ -59,7 +59,11 @@ impl RpcClientTrait for WsRpcClient {
             let maybe_update = sub.next().await?;
             if let Some(update) = maybe_update {
                 let (status, val) = parse_status(update)?;
-                log::info!("Status update for pending extrinsic: {:?}", status);
+                log::info!(
+                    "Status update for pending extrinsic: {:?} (original message {})",
+                    status,
+                    update
+                );
                 if status == XtStatus::Future {
                     log::warn!("Extrinsic has 'future' status. aborting");
                     return Ok(None);
