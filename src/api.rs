@@ -1,12 +1,12 @@
 use std::convert::TryFrom;
 
+pub use ::metadata::RuntimeMetadataPrefixed;
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use jsonrpsee_ws_client::types::error::Error as JsonRpcWsError;
-use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
+use jsonrpsee_ws_client::types::v2::params::ParamsSer as JsonRpcParams;
 use jsonrpsee_ws_client::types::JsonValue;
 use log::{debug, info};
-pub use metadata::RuntimeMetadataPrefixed;
 use serde::de::DeserializeOwned;
 pub use serde_json::Value;
 pub use sp_core::crypto::Pair;
@@ -20,11 +20,11 @@ pub use sp_std::prelude::*;
 pub use sp_version::RuntimeVersion;
 pub use transaction_payment::FeeDetails;
 
-pub use crate::node_metadata::Metadata;
+pub use crate::metadata::Metadata;
 use crate::rpc::json_req;
 pub use crate::rpc::XtStatus;
 pub use crate::utils::FromHexString;
-use crate::{extrinsic, node_metadata, Balance};
+use crate::{extrinsic, metadata, Balance};
 use crate::{AccountData, AccountInfo, Hash};
 
 pub type ApiResult<T> = Result<T, ApiClientError>;
@@ -159,7 +159,7 @@ where
 
     pub async fn get_finalized_head(&self) -> ApiResult<Option<Hash>> {
         let h = self
-            .get_request("chain_getFinalizedHead", JsonRpcParams::NoParams)
+            .get_request("chain_getFinalizedHead", JsonRpcParams::Array(vec![]))
             .await?;
         match h.and_then(|v| v.as_str().map(str::to_owned)) {
             Some(hash) => Ok(Some(Hash::from_hex(hash)?)),
@@ -400,7 +400,7 @@ pub enum ApiClientError {
     #[error("ChannelReceiveError, sender is disconnected: {0}")]
     Disconnected(#[from] sp_std::sync::mpsc::RecvError),
     #[error("Metadata Error: {0}")]
-    Metadata(#[from] node_metadata::MetadataError),
+    Metadata(#[from] metadata::MetadataError),
     #[error("Error decoding storage value: {0}")]
     StorageValueDecode(#[from] extrinsic::codec::Error),
     #[error("Received invalid hex string: {0}")]

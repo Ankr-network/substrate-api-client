@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use jsonrpsee_ws_client::types::traits::{Client, SubscriptionClient};
-use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
+use jsonrpsee_ws_client::types::v2::params::ParamsSer as JsonRpcParams;
 use jsonrpsee_ws_client::types::{Error as JsonRpcWsError, JsonValue, Subscription};
 use log::error;
 use sp_core::H256 as Hash;
@@ -37,7 +37,7 @@ impl WsRpcClient {
 #[async_trait]
 impl RpcClientTrait for WsRpcClient {
     async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue> {
-        let str: JsonValue = self.client.request(method, params).await?;
+        let str: JsonValue = self.client.request(method, Some(params)).await?;
         Ok(str)
     }
 
@@ -50,7 +50,9 @@ impl RpcClientTrait for WsRpcClient {
             .client
             .subscribe(
                 "author_submitAndWatchExtrinsic",
-                JsonRpcParams::Array(vec![JsonValue::String(xt_hex_prefixed)]),
+                Some(JsonRpcParams::Array(vec![JsonValue::String(
+                    xt_hex_prefixed,
+                )])),
                 "author_unwatchExtrinsic",
             )
             .await?;

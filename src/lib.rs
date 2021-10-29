@@ -34,7 +34,7 @@ pub use crate::api::*;
 #[macro_use]
 pub mod extrinsic;
 pub mod api;
-pub mod node_metadata;
+pub mod metadata;
 pub mod rpc;
 pub mod utils;
 

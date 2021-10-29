@@ -1,30 +1,15 @@
-// Copyright 2019 Parity Technologies (UK) Ltd. and Supercomputing Systems AG
-// This file is part of substrate-subxt.
-//
-// subxt is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// subxt is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with substrate-subxt.  If not, see <http://www.gnu.org/licenses/>.
-
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData};
 
 use codec::{Decode, Encode};
 use log::*;
 use metadata::{
-    RuntimeMetadata, RuntimeMetadataPrefixed, RuntimeMetadataV14, StorageEntryType, StorageHasher,
-    META_RESERVED,
+    RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, StorageHasher, META_RESERVED,
 };
-use scale_info::TypeDef;
 use serde::ser::Serialize;
 use sp_core::storage::StorageKey;
+
+pub(crate) mod v13;
+pub(crate) mod v14;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MetadataError {
@@ -415,7 +400,7 @@ pub struct StorageMetadata {
     module_prefix: String,
     storage_prefix: String,
     modifier: metadata::StorageEntryModifier,
-    ty: metadata::StorageEntryType<scale_info::form::PortableForm>,
+    ty: Option<metadata::StorageEntryType<scale_info::form::PortableForm>>,
     default: Vec<u8>,
 }
 
@@ -423,7 +408,7 @@ impl StorageMetadata {
     pub fn get_double_map<K: Encode, Q: Encode, V: Decode + Clone>(
         &self,
     ) -> Result<StorageDoubleMap<K, Q, V>, MetadataError> {
-        match &self.ty {
+        match self.ty.as_ref().unwrap() {
             StorageEntryType::Map { hashers, .. } => {
                 assert_eq!(hashers.len(), 2);
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
@@ -452,7 +437,7 @@ impl StorageMetadata {
         }
     }
     pub fn get_map<K: Encode, V: Decode + Clone>(&self) -> Result<StorageMap<K, V>, MetadataError> {
-        match &self.ty {
+        match self.ty.as_ref().unwrap() {
             StorageEntryType::Map { hashers, .. } => {
                 assert_eq!(hashers.len(), 1);
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
@@ -477,7 +462,7 @@ impl StorageMetadata {
         }
     }
     pub fn get_map_prefix(&self) -> Result<StorageKey, MetadataError> {
-        match &self.ty {
+        match self.ty.as_ref().unwrap() {
             StorageEntryType::Map { .. } => {
                 let mut bytes = sp_core::twox_128(&self.module_prefix.as_bytes().to_vec()).to_vec();
                 bytes.extend(&sp_core::twox_128(&self.storage_prefix.as_bytes().to_vec())[..]);
@@ -488,7 +473,7 @@ impl StorageMetadata {
     }
 
     pub fn get_value(&self) -> Result<StorageValue, MetadataError> {
-        match &self.ty {
+        match self.ty.as_ref().unwrap() {
             StorageEntryType::Plain { .. } => {
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
                 let storage_prefix = self.storage_prefix.as_bytes().to_vec();
@@ -599,28 +584,15 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
             return Err(ConversionError::InvalidPrefix.into());
         }
         match metadata.1 {
-            RuntimeMetadata::V13(meta) => Ok(parse_metadata_v13(meta)),
+            RuntimeMetadata::V13(meta) => {
+                v13::parse_metadata_v13(meta).map_err(|e| MetadataError::Conversion(e))
+            }
             RuntimeMetadata::V14(meta) => {
-                parse_metadata_v14(meta).map_err(|e| MetadataError::Conversion(e))
+                v14::parse_metadata_v14(meta).map_err(|e| MetadataError::Conversion(e))
             }
             _ => return Err(ConversionError::InvalidVersion.into()),
         }
     }
-}
-
-fn convert_entry(
-    module_prefix: String,
-    storage_prefix: String,
-    entry: metadata::StorageEntryMetadata<scale_info::form::PortableForm>,
-) -> Result<StorageMetadata, ConversionError> {
-    let default = entry.default;
-    Ok(StorageMetadata {
-        module_prefix,
-        storage_prefix,
-        modifier: entry.modifier,
-        ty: entry.ty,
-        default,
-    })
 }
 
 /// generates the key's hash depending on the StorageHasher selected
@@ -647,153 +619,4 @@ fn key_hash<K: Encode>(key: &K, hasher: &StorageHasher) -> Vec<u8> {
             .cloned()
             .collect(),
     }
-}
-
-fn parse_metadata_v13(_meta: metadata::v13::RuntimeMetadataV13) -> Metadata {
-    panic!("not supported!");
-}
-
-fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionError> {
-    let mut modules = HashMap::new();
-    let mut modules_with_calls = HashMap::new();
-    let mut modules_with_events = HashMap::new();
-    let mut modules_with_errors = HashMap::new();
-    let mut modules_with_constants = HashMap::new();
-
-    let type_registry = meta.types.types();
-
-    for module in meta.pallets {
-        let module_name = module.name;
-
-        let mut storage_map = HashMap::new();
-        if let Some(storage) = module.storage {
-            let module_prefix = storage.prefix;
-            for entry in storage.entries.into_iter() {
-                let storage_prefix = entry.name.clone();
-                let entry = convert_entry(module_prefix.clone(), storage_prefix.clone(), entry)?;
-                storage_map.insert(storage_prefix, entry);
-            }
-        }
-        modules.insert(
-            module_name.clone(),
-            ModuleMetadata {
-                index: module.index,
-                name: module_name.clone(),
-                storage: storage_map,
-            },
-        );
-
-        if let Some(calls) = module.calls {
-            let mut call_map = HashMap::new();
-            match type_registry[calls.ty.id() as usize].ty().type_def() {
-                TypeDef::Variant(v) => {
-                    for (index, call) in v.variants().iter().enumerate() {
-                        call_map.insert(call.name().clone(), index as u8);
-                    }
-                }
-                _ => {
-                    log::warn!(
-                        "Skipped parsing calls for module {}, type ({}) is not variant",
-                        module_name,
-                        calls.ty.id()
-                    );
-                }
-            };
-
-            modules_with_calls.insert(
-                module_name.clone(),
-                ModuleWithCalls {
-                    index: module.index,
-                    name: module_name.clone(),
-                    calls: call_map,
-                },
-            );
-        }
-
-        if let Some(events) = module.event {
-            let mut event_map = HashMap::new();
-            match type_registry[events.ty.id() as usize].ty().type_def() {
-                TypeDef::Variant(v) => {
-                    for (index, call) in v.variants().iter().enumerate() {
-                        event_map.insert(index as u8, call.name().clone());
-                    }
-                }
-                _ => {
-                    log::warn!(
-                        "Skipped parsing events for module {}, type ({}) is not variant",
-                        module_name,
-                        events.ty.id()
-                    );
-                }
-            };
-
-            modules_with_events.insert(
-                module_name.clone(),
-                ModuleWithEvents {
-                    index: module.index,
-                    name: module_name.clone(),
-                    events: event_map,
-                },
-            );
-        }
-
-        if let Some(errors) = module.error {
-            let mut error_map = HashMap::new();
-
-            match type_registry[errors.ty.id() as usize].ty().type_def() {
-                TypeDef::Variant(v) => {
-                    for (index, err) in v.variants().iter().enumerate() {
-                        error_map.insert(index as u8, err.name().clone());
-                    }
-                }
-                _ => {
-                    log::warn!(
-                        "Skipped parsing errors for module {}, type ({}) is not variant",
-                        module_name,
-                        errors.ty.id()
-                    );
-                }
-            };
-
-            modules_with_errors.insert(
-                module_name.clone(),
-                ModuleWithErrors {
-                    index: module.index,
-                    name: module_name.clone(),
-                    errors: error_map,
-                },
-            );
-        }
-
-        let constants = module.constants;
-        let mut constant_map = HashMap::new();
-        for (index, constant) in constants.into_iter().enumerate() {
-            constant_map.insert(
-                index as u8,
-                ModuleConstantMetadata {
-                    ty: type_registry[constant.ty.id() as usize]
-                        .ty()
-                        .path()
-                        .to_string(),
-                    name: constant.name,
-                    value: constant.value,
-                },
-            );
-        }
-        modules_with_constants.insert(
-            module_name.clone(),
-            ModuleWithConstants {
-                index: module.index,
-                name: module_name.clone(),
-                constants: constant_map,
-            },
-        );
-    }
-    Ok(Metadata {
-        modules,
-        modules_with_calls,
-        modules_with_events,
-        modules_with_errors,
-        modules_with_constants,
-    })
 }
