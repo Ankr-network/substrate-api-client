@@ -4,7 +4,7 @@ pub use ::metadata::RuntimeMetadataPrefixed;
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use jsonrpsee_ws_client::types::error::Error as JsonRpcWsError;
-use jsonrpsee_ws_client::types::v2::params::ParamsSer as JsonRpcParams;
+use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
 use jsonrpsee_ws_client::types::JsonValue;
 use log::{debug, info};
 use serde::de::DeserializeOwned;
