@@ -47,6 +47,18 @@ pub fn state_get_storage<'a>(key: StorageKey, at_block: Option<Hash>) -> JsonRpc
     JsonRpcParams::Array(vec![to_value(key).unwrap(), to_value(at_block).unwrap()])
 }
 
+pub fn state_get_child_storage<'a>(
+    child: StorageKey,
+    key: StorageKey,
+    at_block: Option<Hash>,
+) -> JsonRpcParams<'a> {
+    JsonRpcParams::Array(vec![
+        to_value(child).unwrap(),
+        to_value(key).unwrap(),
+        to_value(at_block).unwrap(),
+    ])
+}
+
 pub fn state_query_storage_at<'a>(
     keys: Vec<StorageKey>,
     at_block: Option<Hash>,

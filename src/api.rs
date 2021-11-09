@@ -295,6 +295,40 @@ where
         .collect()
     }
 
+    pub async fn get_child_storage_by_hash<V: Decode + Clone>(
+        &self,
+        child: StorageKey,
+        key_hash: StorageKey,
+        at_block: Option<Hash>,
+    ) -> ApiResult<Option<V>> {
+        let s = self
+            .get_opaque_child_storage_by_hash(child, key_hash, at_block)
+            .await?;
+        match s {
+            Some(storage) => Ok(Some(Decode::decode(&mut storage.as_slice())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn get_opaque_child_storage_by_hash(
+        &self,
+        child: StorageKey,
+        key_hash: StorageKey,
+        at_block: Option<Hash>,
+    ) -> ApiResult<Option<Vec<u8>>> {
+        let s = self
+            .get_request(
+                "childstate_getStorage",
+                json_req::state_get_child_storage(child, key_hash, at_block),
+            )
+            .await?;
+
+        match s.and_then(|v| v.as_str().map(str::to_owned)) {
+            Some(storage) => Ok(Some(Vec::from_hex(storage)?)),
+            None => Ok(None),
+        }
+    }
+
     pub async fn get_storage_map<K: Encode, V: Decode + Clone>(
         &self,
         storage_prefix: &'static str,
