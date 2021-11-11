@@ -142,17 +142,17 @@ where
         Self::_get_genesis_hash(&self.client).await
     }
 
-    pub async fn get_account_info(&self, address: &AccountId) -> ApiResult<Option<AccountInfo>> {
+    pub async fn get_account_info(&self, address: &AccountId, at: Option<Hash>) -> ApiResult<Option<AccountInfo>> {
         let storagekey: sp_core::storage::StorageKey = self
             .metadata
             .storage_map_key::<AccountId, AccountInfo>("System", "Account", address.clone())?;
         info!("storagekey {:?}", storagekey);
         info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
-        self.get_storage_by_key_hash(storagekey, None).await
+        self.get_storage_by_key_hash(storagekey, at).await
     }
 
     pub async fn get_account_data(&self, address: &AccountId) -> ApiResult<Option<AccountData>> {
-        self.get_account_info(address)
+        self.get_account_info(address, None)
             .await
             .map(|info| info.map(|i| i.data))
     }
