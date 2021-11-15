@@ -146,8 +146,7 @@ where
         let storagekey: sp_core::storage::StorageKey = self
             .metadata
             .storage_map_key::<AccountId, AccountInfo>("System", "Account", address.clone())?;
-        info!("storagekey {:?}", storagekey);
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at).await
     }
 
@@ -223,7 +222,7 @@ where
         let storagekey = self
             .metadata
             .storage_value_key(storage_prefix, storage_key_name)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
@@ -339,7 +338,7 @@ where
         let storagekey =
             self.metadata
                 .storage_map_key::<K, V>(storage_prefix, storage_key_name, map_key)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
@@ -367,7 +366,7 @@ where
             first,
             second,
         )?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 

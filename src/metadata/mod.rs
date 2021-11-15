@@ -419,7 +419,7 @@ impl StorageMetadata {
                 let default = Decode::decode(&mut &self.default[..])
                     .map_err(|_| MetadataError::MapValueTypeError)?;
 
-                info!(
+                debug!(
                     "map for '{}' '{}' has hasher1 {:?} hasher2 {:?}",
                     self.module_prefix, self.storage_prefix, hasher1, hasher2
                 );
@@ -446,7 +446,7 @@ impl StorageMetadata {
                 let default = Decode::decode(&mut &self.default[..])
                     .map_err(|_| MetadataError::MapValueTypeError)?;
 
-                info!(
+                debug!(
                     "map for '{}' '{}' has hasher {:?}",
                     self.module_prefix, self.storage_prefix, hasher
                 );
