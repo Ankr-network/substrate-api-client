@@ -5,7 +5,7 @@ use crate::metadata::{
     ModuleWithConstants, ModuleWithErrors, ModuleWithEvents, StorageMetadata,
 };
 use metadata::decode_different::DecodeDifferent;
-use metadata::v13::StorageEntryModifier;
+use metadata::v13::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
 pub(crate) fn parse_metadata_v13(
     meta: metadata::v13::RuntimeMetadataV13,
@@ -130,6 +130,24 @@ fn convert_entry(
     entry: metadata::v13::StorageEntryMetadata,
 ) -> Result<StorageMetadata, ConversionError> {
     let default = convert(entry.default)?;
+    let ty = match entry.ty {
+        StorageEntryType::Plain(_) => crate::metadata::StorageEntryType::Plain,
+        StorageEntryType::Map { hasher, .. } => crate::metadata::StorageEntryType::Map {
+            hashers: vec![convert_hasher(&hasher)],
+        },
+        StorageEntryType::DoubleMap { hasher, key2_hasher, .. } => crate::metadata::StorageEntryType::Map {
+            hashers: vec![convert_hasher(&hasher), convert_hasher(&key2_hasher)],
+        },
+        StorageEntryType::NMap { hashers, .. } => {
+            let hashers: Vec<metadata::v14::StorageHasher> = match hashers {
+                DecodeDifferent::Encode(b) => b.iter().map(|x| convert_hasher(x)).collect(),
+                DecodeDifferent::Decoded(o) => o.iter().map(|x| convert_hasher(x)).collect(),
+            };
+            crate::metadata::StorageEntryType::Map {
+                hashers
+            }
+        }
+    };
     Ok(StorageMetadata {
         module_prefix,
         storage_prefix,
@@ -137,7 +155,19 @@ fn convert_entry(
             StorageEntryModifier::Optional => metadata::v14::StorageEntryModifier::Optional,
             StorageEntryModifier::Default => metadata::v14::StorageEntryModifier::Default,
         },
-        ty: None, // FIXME: calculating storage keys on v13 won't work
+        ty,
         default,
     })
+}
+
+fn convert_hasher(hasher: &metadata::v13::StorageHasher) -> metadata::v14::StorageHasher {
+    match hasher {
+        StorageHasher::Blake2_128 => metadata::v14::StorageHasher::Blake2_128,
+        StorageHasher::Blake2_256 => metadata::v14::StorageHasher::Blake2_256,
+        StorageHasher::Blake2_128Concat => metadata::v14::StorageHasher::Blake2_128Concat,
+        StorageHasher::Twox128 => metadata::v14::StorageHasher::Twox128,
+        StorageHasher::Twox256 => metadata::v14::StorageHasher::Twox256,
+        StorageHasher::Twox64Concat => metadata::v14::StorageHasher::Twox64Concat,
+        StorageHasher::Identity => metadata::v14::StorageHasher::Identity,
+    }
 }

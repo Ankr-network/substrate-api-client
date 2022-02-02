@@ -4,7 +4,7 @@ use crate::metadata::{
     ConversionError, Metadata, ModuleConstantMetadata, ModuleMetadata, ModuleWithCalls,
     ModuleWithConstants, ModuleWithErrors, ModuleWithEvents, StorageMetadata,
 };
-use metadata::RuntimeMetadataV14;
+use metadata::{RuntimeMetadataV14, StorageEntryType};
 use scale_info::TypeDef;
 
 pub(crate) fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, ConversionError> {
@@ -158,11 +158,17 @@ fn convert_entry(
     entry: metadata::StorageEntryMetadata<scale_info::form::PortableForm>,
 ) -> Result<StorageMetadata, ConversionError> {
     let default = entry.default;
+    let ty = match entry.ty {
+        StorageEntryType::Plain(_) => crate::metadata::StorageEntryType::Plain,
+        StorageEntryType::Map { hashers, .. } => crate::metadata::StorageEntryType::Map {
+            hashers
+        }
+    };
     Ok(StorageMetadata {
         module_prefix,
         storage_prefix,
         modifier: entry.modifier,
-        ty: Some(entry.ty),
+        ty,
         default,
     })
 }

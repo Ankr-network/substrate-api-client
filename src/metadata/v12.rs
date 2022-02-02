@@ -5,7 +5,7 @@ use crate::metadata::{
     ModuleWithConstants, ModuleWithErrors, ModuleWithEvents, StorageMetadata,
 };
 use metadata::decode_different::DecodeDifferent;
-use metadata::v12::StorageEntryModifier;
+use metadata::v12::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
 pub(crate) fn parse_metadata_v12(
     meta: metadata::v12::RuntimeMetadataV12,
@@ -130,6 +130,15 @@ fn convert_entry(
     entry: metadata::v12::StorageEntryMetadata,
 ) -> Result<StorageMetadata, ConversionError> {
     let default = convert(entry.default)?;
+    let ty = match entry.ty {
+        StorageEntryType::Plain(_) => crate::metadata::StorageEntryType::Plain,
+        StorageEntryType::Map { hasher, .. } => crate::metadata::StorageEntryType::Map {
+            hashers: vec![convert_hasher(hasher)],
+        },
+        StorageEntryType::DoubleMap { hasher, key2_hasher, .. } => crate::metadata::StorageEntryType::Map {
+            hashers: vec![convert_hasher(hasher), convert_hasher(key2_hasher)],
+        }
+    };
     Ok(StorageMetadata {
         module_prefix,
         storage_prefix,
@@ -137,7 +146,19 @@ fn convert_entry(
             StorageEntryModifier::Optional => metadata::v14::StorageEntryModifier::Optional,
             StorageEntryModifier::Default => metadata::v14::StorageEntryModifier::Default,
         },
-        ty: None, // FIXME: calculating storage keys on v12 won't work
+        ty,
         default,
     })
+}
+
+fn convert_hasher(hasher: metadata::v12::StorageHasher) -> metadata::v14::StorageHasher {
+    match hasher {
+        StorageHasher::Blake2_128 => metadata::v14::StorageHasher::Blake2_128,
+        StorageHasher::Blake2_256 => metadata::v14::StorageHasher::Blake2_256,
+        StorageHasher::Blake2_128Concat => metadata::v14::StorageHasher::Blake2_128Concat,
+        StorageHasher::Twox128 => metadata::v14::StorageHasher::Twox128,
+        StorageHasher::Twox256 => metadata::v14::StorageHasher::Twox256,
+        StorageHasher::Twox64Concat => metadata::v14::StorageHasher::Twox64Concat,
+        StorageHasher::Identity => metadata::v14::StorageHasher::Identity,
+    }
 }

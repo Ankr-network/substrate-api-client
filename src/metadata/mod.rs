@@ -3,7 +3,7 @@ use std::{collections::HashMap, convert::TryFrom, marker::PhantomData};
 use codec::{Decode, Encode};
 use log::*;
 use metadata::{
-    RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryType, StorageHasher, META_RESERVED,
+    RuntimeMetadata, RuntimeMetadataPrefixed, StorageHasher, META_RESERVED,
 };
 use serde::ser::Serialize;
 use sp_core::storage::StorageKey;
@@ -397,11 +397,19 @@ impl ModuleWithConstants {
 }
 
 #[derive(Clone, Debug)]
+pub enum StorageEntryType {
+    Plain,
+    Map {
+        hashers: Vec<StorageHasher>,
+    },
+}
+
+#[derive(Clone, Debug)]
 pub struct StorageMetadata {
     module_prefix: String,
     storage_prefix: String,
     modifier: metadata::StorageEntryModifier,
-    ty: Option<metadata::StorageEntryType<scale_info::form::PortableForm>>,
+    ty: StorageEntryType,
     default: Vec<u8>,
 }
 
@@ -409,7 +417,7 @@ impl StorageMetadata {
     pub fn get_double_map<K: Encode, Q: Encode, V: Decode + Clone>(
         &self,
     ) -> Result<StorageDoubleMap<K, Q, V>, MetadataError> {
-        match self.ty.as_ref().unwrap() {
+        match &self.ty {
             StorageEntryType::Map { hashers, .. } => {
                 assert_eq!(hashers.len(), 2);
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
@@ -438,7 +446,7 @@ impl StorageMetadata {
         }
     }
     pub fn get_map<K: Encode, V: Decode + Clone>(&self) -> Result<StorageMap<K, V>, MetadataError> {
-        match self.ty.as_ref().unwrap() {
+        match &self.ty {
             StorageEntryType::Map { hashers, .. } => {
                 assert_eq!(hashers.len(), 1);
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
@@ -463,7 +471,7 @@ impl StorageMetadata {
         }
     }
     pub fn get_map_prefix(&self) -> Result<StorageKey, MetadataError> {
-        match self.ty.as_ref().unwrap() {
+        match &self.ty {
             StorageEntryType::Map { .. } => {
                 let mut bytes = sp_core::twox_128(&self.module_prefix.as_bytes().to_vec()).to_vec();
                 bytes.extend(&sp_core::twox_128(&self.storage_prefix.as_bytes().to_vec())[..]);
@@ -474,7 +482,7 @@ impl StorageMetadata {
     }
 
     pub fn get_value(&self) -> Result<StorageValue, MetadataError> {
-        match self.ty.as_ref().unwrap() {
+        match &self.ty {
             StorageEntryType::Plain { .. } => {
                 let module_prefix = self.module_prefix.as_bytes().to_vec();
                 let storage_prefix = self.storage_prefix.as_bytes().to_vec();
@@ -636,6 +644,6 @@ mod tests {
         let metadata = RuntimeMetadataPrefixed::decode(&mut raw_metadata.as_slice())
             .expect("can't decode");
 
-        let metadata = crate::metadata::Metadata::try_from(metadata).expect("can't convert");
+        crate::metadata::Metadata::try_from(metadata).expect("can't convert");
     }
 }
