@@ -24,7 +24,7 @@ pub use crate::metadata::Metadata;
 use crate::rpc::json_req;
 pub use crate::rpc::XtStatus;
 pub use crate::utils::FromHexString;
-use crate::{extrinsic, metadata, Balance};
+use crate::{extrinsic, metadata, Balance, AccountInfoLegacy};
 use crate::{AccountData, AccountInfo, Hash};
 
 pub type ApiResult<T> = Result<T, ApiClientError>;
@@ -44,8 +44,8 @@ pub trait RpcClient {
 
 #[derive(Clone)]
 pub struct Api<Client>
-where
-    Client: RpcClient,
+    where
+        Client: RpcClient,
 {
     pub genesis_hash: Hash,
     pub metadata: Metadata,
@@ -55,8 +55,8 @@ where
 }
 
 impl<Client> Api<Client>
-where
-    Client: RpcClient,
+    where
+        Client: RpcClient,
 {
     pub async fn new(client: Client) -> ApiResult<Self> {
         let genesis_hash = Self::_get_genesis_hash(&client).await?;
@@ -143,12 +143,22 @@ where
     }
 
     pub async fn get_account_info(&self, address: &AccountId, at: Option<Hash>) -> ApiResult<Option<AccountInfo>> {
-        let storagekey: sp_core::storage::StorageKey = self
+        // In older versions of frame_system Account map has different content so we try both ways
+        let storagekey = match self
             .metadata
-            .storage_map_key::<AccountId, AccountInfo>("System", "Account", address.clone())?;
-        info!("storagekey {:?}", storagekey);
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
-        self.get_storage_by_key_hash(storagekey, at).await
+            .storage_map_key::<AccountId, AccountInfo>("System", "Account", address.clone()) {
+            Ok(key) => key,
+            Err(_) => self.metadata.storage_map_key::<AccountId, AccountInfoLegacy>("System", "Account", address.clone())?,
+        };
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        return if let Some(raw_info) = self.get_opaque_storage_by_key_hash(storagekey, at).await? {
+            let info: Result<AccountInfo, codec::Error> = Decode::decode(&mut raw_info.as_slice());
+            if let Ok(x) = info { return Ok(Some(x)); }
+            let info: AccountInfoLegacy = Decode::decode(&mut raw_info.as_slice())?;
+            Ok(Some(info.into()))
+        } else {
+            Ok(None)
+        }
     }
 
     pub async fn get_account_data(&self, address: &AccountId) -> ApiResult<Option<AccountData>> {
@@ -168,8 +178,8 @@ where
     }
 
     pub async fn get_header<H>(&self, hash: Option<Hash>) -> ApiResult<Option<H>>
-    where
-        H: Header + DeserializeOwned,
+        where
+            H: Header + DeserializeOwned,
     {
         let h = self
             .get_request("chain_getHeader", json_req::hash_params(hash))
@@ -181,8 +191,8 @@ where
     }
 
     pub async fn get_block<B>(&self, hash: Option<Hash>) -> ApiResult<Option<B>>
-    where
-        B: Block + DeserializeOwned,
+        where
+            B: Block + DeserializeOwned,
     {
         Self::get_signed_block(self, hash)
             .await
@@ -194,8 +204,8 @@ where
     /// the `GrandpaConfig.justification_period` in a node's service.rs.
     /// The Justification may be none.
     pub async fn get_signed_block<B>(&self, hash: Option<Hash>) -> ApiResult<Option<SignedBlock<B>>>
-    where
-        B: Block + DeserializeOwned,
+        where
+            B: Block + DeserializeOwned,
     {
         let b = self
             .get_request("chain_getBlock", json_req::hash_params(hash))
@@ -223,7 +233,7 @@ where
         let storagekey = self
             .metadata
             .storage_value_key(storage_prefix, storage_key_name)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
@@ -236,33 +246,33 @@ where
             "state_queryStorageAt",
             json_req::state_query_storage_at(keys, at_block),
         )
-        .await?
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt did not return any data".to_owned())
-        })?
-        .as_array()
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt returned not an array".to_owned())
-        })?
-        .get(0)
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt returned empty array".to_owned())
-        })?
-        .as_object()
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt: unexpected structure".to_owned())
-        })?
-        .get("changes")
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt: no `changes` field".to_owned())
-        })?
-        .as_array()
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_queryStorageAt: `changes` is not an array".to_owned())
-        })?
-        .iter()
-        .map(parse_pair)
-        .collect()
+            .await?
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt did not return any data".to_owned())
+            })?
+            .as_array()
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt returned not an array".to_owned())
+            })?
+            .get(0)
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt returned empty array".to_owned())
+            })?
+            .as_object()
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt: unexpected structure".to_owned())
+            })?
+            .get("changes")
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt: no `changes` field".to_owned())
+            })?
+            .as_array()
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_queryStorageAt: `changes` is not an array".to_owned())
+            })?
+            .iter()
+            .map(parse_pair)
+            .collect()
     }
 
     pub async fn get_keys_paged(
@@ -276,23 +286,23 @@ where
             "state_getKeysPaged",
             json_req::state_get_keys_paged(prefix, count, start_key, at),
         )
-        .await?
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_getKeysPaged did not return any data".to_owned())
-        })?
-        .as_array()
-        .ok_or_else(|| {
-            ApiClientError::RpcClient("state_getKeysPaged returned not an array".to_owned())
-        })?
-        .iter()
-        .map(|v| {
-            v.as_str().ok_or_else(|| {
-                ApiClientError::RpcClient("state_getKeysPaged returned bad array".to_owned())
+            .await?
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_getKeysPaged did not return any data".to_owned())
+            })?
+            .as_array()
+            .ok_or_else(|| {
+                ApiClientError::RpcClient("state_getKeysPaged returned not an array".to_owned())
+            })?
+            .iter()
+            .map(|v| {
+                v.as_str().ok_or_else(|| {
+                    ApiClientError::RpcClient("state_getKeysPaged returned bad array".to_owned())
+                })
             })
-        })
-        .map(|v| v.and_then(|x| hex::decode(x.trim_start_matches("0x")).map_err(|e| e.into())))
-        .map(|r| r.map(StorageKey))
-        .collect()
+            .map(|v| v.and_then(|x| hex::decode(x.trim_start_matches("0x")).map_err(|e| e.into())))
+            .map(|r| r.map(StorageKey))
+            .collect()
     }
 
     pub async fn get_child_storage_by_hash<V: Decode + Clone>(
@@ -339,7 +349,7 @@ where
         let storagekey =
             self.metadata
                 .storage_map_key::<K, V>(storage_prefix, storage_key_name, map_key)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 
@@ -367,7 +377,7 @@ where
             first,
             second,
         )?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        debug!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
         self.get_storage_by_key_hash(storagekey, at_block).await
     }
 

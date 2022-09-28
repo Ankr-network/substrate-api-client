@@ -118,6 +118,7 @@ fn parse_status(value: serde_json::Value) -> Result<(XtStatus, Option<String>), 
             None => match value.as_str() {
                 Some("ready") => Ok((XtStatus::Ready, None)),
                 Some("future") => Ok((XtStatus::Future, None)),
+                Some("invalid") => Err(ApiClientError::Extrinsic("Transaction is invalid or lifetime expired".to_owned())),
                 Some(&_) => Ok((XtStatus::Unknown, None)),
                 None => Ok((XtStatus::Unknown, None)),
             },

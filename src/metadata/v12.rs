@@ -5,10 +5,10 @@ use crate::metadata::{
     ModuleWithConstants, ModuleWithErrors, ModuleWithEvents, StorageMetadata,
 };
 use metadata::decode_different::DecodeDifferent;
-use metadata::v13::{StorageEntryModifier, StorageEntryType, StorageHasher};
+use metadata::v12::{StorageEntryModifier, StorageEntryType, StorageHasher};
 
-pub(crate) fn parse_metadata_v13(
-    meta: metadata::v13::RuntimeMetadataV13,
+pub(crate) fn parse_metadata_v12(
+    meta: metadata::v12::RuntimeMetadataV12,
 ) -> Result<Metadata, ConversionError> {
     let mut modules: HashMap<String, ModuleMetadata> = HashMap::new();
     let mut modules_with_calls: HashMap<String, ModuleWithCalls> = HashMap::new();
@@ -111,12 +111,12 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Conve
     }
 }
 
-fn convert_event(event: metadata::v13::EventMetadata) -> Result<String, ConversionError> {
+fn convert_event(event: metadata::v12::EventMetadata) -> Result<String, ConversionError> {
     convert(event.name).map(|s| s.to_string())
 }
 
 fn convert_constant(
-    constant: metadata::v13::ModuleConstantMetadata,
+    constant: metadata::v12::ModuleConstantMetadata,
 ) -> Result<ModuleConstantMetadata, ConversionError> {
     let name = convert(constant.name)?;
     let value = convert(constant.value)?;
@@ -127,25 +127,16 @@ fn convert_constant(
 fn convert_entry(
     module_prefix: String,
     storage_prefix: String,
-    entry: metadata::v13::StorageEntryMetadata,
+    entry: metadata::v12::StorageEntryMetadata,
 ) -> Result<StorageMetadata, ConversionError> {
     let default = convert(entry.default)?;
     let ty = match entry.ty {
         StorageEntryType::Plain(_) => crate::metadata::StorageEntryType::Plain,
         StorageEntryType::Map { hasher, .. } => crate::metadata::StorageEntryType::Map {
-            hashers: vec![convert_hasher(&hasher)],
+            hashers: vec![convert_hasher(hasher)],
         },
         StorageEntryType::DoubleMap { hasher, key2_hasher, .. } => crate::metadata::StorageEntryType::Map {
-            hashers: vec![convert_hasher(&hasher), convert_hasher(&key2_hasher)],
-        },
-        StorageEntryType::NMap { hashers, .. } => {
-            let hashers: Vec<metadata::v14::StorageHasher> = match hashers {
-                DecodeDifferent::Encode(b) => b.iter().map(|x| convert_hasher(x)).collect(),
-                DecodeDifferent::Decoded(o) => o.iter().map(|x| convert_hasher(x)).collect(),
-            };
-            crate::metadata::StorageEntryType::Map {
-                hashers
-            }
+            hashers: vec![convert_hasher(hasher), convert_hasher(key2_hasher)],
         }
     };
     Ok(StorageMetadata {
@@ -160,7 +151,7 @@ fn convert_entry(
     })
 }
 
-fn convert_hasher(hasher: &metadata::v13::StorageHasher) -> metadata::v14::StorageHasher {
+fn convert_hasher(hasher: metadata::v12::StorageHasher) -> metadata::v14::StorageHasher {
     match hasher {
         StorageHasher::Blake2_128 => metadata::v14::StorageHasher::Blake2_128,
         StorageHasher::Blake2_256 => metadata::v14::StorageHasher::Blake2_256,

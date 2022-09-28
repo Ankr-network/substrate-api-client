@@ -96,5 +96,34 @@ pub struct AccountInfoGen<Index, AccountData> {
     pub data: AccountData,
 }
 
+/// Redefinition from `frame-system`. Again see: https://github.com/paritytech/substrate/issues/8891
+#[derive(Clone, Eq, PartialEq, Default, Debug, Encode, Decode)]
+pub struct AccountInfoGenLegacy<Index, AccountData> {
+    /// The number of transactions this account has sent.
+    pub nonce: Index,
+    /// The number of other modules that currently depend on this account's existence. The account
+    /// cannot be reaped until this is zero.
+    pub consumers: RefCount,
+    /// The number of other modules that allow this account to exist. The account may not be reaped
+    /// until this and `sufficients` are both zero.
+    pub providers: RefCount,
+    /// The additional data that belongs to this account. Used to store the balance(s) in a lot of
+    /// chains.
+    pub data: AccountData,
+}
+
 pub type AccountData = AccountDataGen<Balance>;
 pub type AccountInfo = AccountInfoGen<Index, AccountData>;
+pub type AccountInfoLegacy = AccountInfoGenLegacy<Index, AccountData>;
+
+impl Into<AccountInfo> for AccountInfoLegacy {
+    fn into(self) -> AccountInfo {
+        AccountInfo {
+            consumers: self.consumers,
+            nonce: self.nonce,
+            providers: self.providers,
+            sufficients: 0,
+            data: self.data
+        }
+    }
+}

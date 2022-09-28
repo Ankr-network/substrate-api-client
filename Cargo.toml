@@ -18,7 +18,7 @@ balances = { git = "https://github.com/paritytech/substrate.git", branch = "polk
 codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false, features = ['derive'] }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.12" }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", package = "frame-system" }
-metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["std", "v13", "v14"] }
+metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["std", "v12", "v13", "v14"] }
 parity-util-mem = { version = "0.10.2", default-features = false }
 primitive-types = { version = "0.10.1", features = ["codec"] }
 scale-info = "1.0.0"
