@@ -25,7 +25,7 @@ scale-info = "1.0.0"
 sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", features = ["full_crypto"] }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", features = ["full_crypto"] }
 sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", version = "4.0.0-dev" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
 sp-version = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", package = "sp-version" }
 staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", package = "pallet-staking" }
