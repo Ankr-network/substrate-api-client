@@ -20,6 +20,7 @@ use sp_core::storage::StorageKey;
 use sp_core::twox_128;
 use sp_core::H256 as Hash;
 
+
 pub fn storage_key(module: &str, storage_key_name: &str) -> StorageKey {
     let mut key = twox_128(module.as_bytes()).to_vec();
     key.extend(&twox_128(storage_key_name.as_bytes()));
@@ -28,8 +29,8 @@ pub fn storage_key(module: &str, storage_key_name: &str) -> StorageKey {
 
 pub trait FromHexString {
     fn from_hex(hex: String) -> Result<Self, hex::FromHexError>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 }
 
 impl FromHexString for Vec<u8> {

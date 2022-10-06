@@ -8,10 +8,12 @@ edition = "2018"
 async-trait = "0.1.51"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 jsonrpsee-ws-client = "0.15.0"
+jsonrpsee-core = "0.15.1"
 log = { version = "0.4" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 thiserror = { version = "1.0" }
+string-builder = "0.2.0"
 
 # Substrate dependencies
 balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12", package = "pallet-balances" }

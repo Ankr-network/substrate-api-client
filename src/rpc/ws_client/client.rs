@@ -1,10 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+
 use async_trait::async_trait;
-use jsonrpsee_ws_client::types::traits::{Client, SubscriptionClient};
-use jsonrpsee_ws_client::types::v2::params::JsonRpcParams;
-use jsonrpsee_ws_client::types::{Error as JsonRpcWsError, JsonValue, Subscription};
+use jsonrpsee_core::client::{SubscriptionClientT, ClientT};
+use jsonrpsee_ws_client::types::params::ParamsSer as JsonRpcParams;
+use jsonrpsee_core::client::Subscription;
+use jsonrpsee_core::error::Error as JsonRpcWsError;
+use serde_json::Value as JsonValue;
 use log::error;
 use sp_core::H256 as Hash;
 
@@ -37,7 +40,7 @@ impl WsRpcClient {
 #[async_trait]
 impl RpcClientTrait for WsRpcClient {
     async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue> {
-        let str: JsonValue = self.client.request(method, params).await?;
+        let str: JsonValue = self.client.request(method, Some(params)).await?;
         Ok(str)
     }
 
@@ -50,16 +53,17 @@ impl RpcClientTrait for WsRpcClient {
             .client
             .subscribe(
                 "author_submitAndWatchExtrinsic",
-                JsonRpcParams::Array(vec![JsonValue::String(xt_hex_prefixed)]),
+                Some(JsonRpcParams::Array(vec![JsonValue::String(xt_hex_prefixed)])),
                 "author_unwatchExtrinsic",
             )
             .await?;
 
         loop {
-            let maybe_update = sub.next().await?;
+            let maybe_update = sub.next().await;
             if let Some(update) = maybe_update {
-                log::info!("Status update for pending extrinsic: {}", update);
-                let (status, val) = parse_status(update)?;
+                // log::info!("Status update for pending extrinsic: {}", update);
+                // todo check why not display
+                let (status, val) = parse_status(update?)?;
                 log::info!("Parsed status update for pending extrinsic: {:?}", status);
 
                 if status == XtStatus::Future {
