@@ -62,7 +62,7 @@ impl<Client> Api<Client>
         let genesis_hash = Self::_get_genesis_hash(&client).await?;
         info!("Got genesis hash: {:?}", genesis_hash);
 
-        let metadata = Self::_get_metadata(&client)
+        let metadata = Self::_get_metadata(&client, None)
             .await
             .map(Metadata::try_from)??;
         debug!("Metadata: {:?}", metadata);
@@ -103,8 +103,8 @@ impl<Client> Api<Client>
         }
     }
 
-    async fn _get_metadata(client: &Client) -> ApiResult<RuntimeMetadataPrefixed> {
-        let meta = Self::_get_request(client, "state_getMetadata", json_req::null_params())
+    async fn _get_metadata(client: &Client, at: Option<Hash>) -> ApiResult<RuntimeMetadataPrefixed> {
+        let meta = Self::_get_request(client, "state_getMetadata", json_req::hash_params(at))
             .await?
             .and_then(|m| m.as_str().map(str::to_owned));
 
@@ -129,7 +129,11 @@ impl<Client> Api<Client>
     }
 
     pub async fn get_metadata(&self) -> ApiResult<RuntimeMetadataPrefixed> {
-        Self::_get_metadata(&self.client).await
+        Self::_get_metadata(&self.client, None).await
+    }
+
+    pub async fn get_metadata_at(&self, at: Option<Hash>) -> ApiResult<RuntimeMetadataPrefixed> {
+        Self::_get_metadata(&self.client, at).await
     }
 
     pub async fn get_spec_version(&self) -> ApiResult<u32> {
