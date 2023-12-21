@@ -31,6 +31,9 @@ pub type ApiResult<T> = Result<T, ApiClientError>;
 
 #[async_trait]
 pub trait RpcClient {
+    /// Returns true if connection to target is established, false otherwise
+    fn is_connected(&self) -> bool;
+
     /// Sends a RPC request that returns a String
     async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue>;
 
@@ -77,6 +80,10 @@ impl<Client> Api<Client>
             transaction_version,
             client,
         })
+    }
+
+    pub fn is_connected(&self) -> bool {
+        return self.client.is_connected();
     }
 
     async fn _get_genesis_hash(client: &Client) -> ApiResult<Hash> {
