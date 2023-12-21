@@ -39,6 +39,10 @@ impl WsRpcClient {
 
 #[async_trait]
 impl RpcClientTrait for WsRpcClient {
+    fn is_connected(&self) -> bool {
+        return self.client.is_connected()
+    }
+
     async fn get_request(&self, method: &str, params: JsonRpcParams<'_>) -> ApiResult<JsonValue> {
         let str: JsonValue = self.client.request(method, Some(params)).await?;
         Ok(str)
