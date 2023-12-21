@@ -25,7 +25,7 @@ metadata = { version = "15.0.0", default-features = false, git = "https://github
 balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-balances" }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", package = "frame-system" }
 sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"], version = "7.0.0" }
+sp-core = { default-features = false, features = ["full_crypto"], version = "7.0.0" }
 sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "7.0.0"}
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
