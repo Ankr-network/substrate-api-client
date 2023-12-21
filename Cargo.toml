@@ -21,7 +21,7 @@ frame-support = { default-features = false, git = "https://github.com/paritytech
 parity-util-mem = { version = "0.11.0", default-features = false }
 primitive-types = { version = "0.12.0", features = ["codec"] }
 scale-info = "2.2.0"
-metadata = { version = "15.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["std", "v12", "v13", "v14"] }
+metadata = { version = "15.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", rev="d241ab9c1ba89e119263812f963a601be158e661", package = "frame-metadata", features = ["std", "v12", "v13", "v14"] }
 balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-balances" }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "master", package = "frame-system" }
 sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
