@@ -42,7 +42,7 @@ pub(crate) fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, C
             match type_registry[calls.ty.id() as usize].ty().type_def() {
                 TypeDef::Variant(v) => {
                     for (index, call) in v.variants().iter().enumerate() {
-                        call_map.insert(call.name().clone(), index as u8);
+                        call_map.insert(call.name().clone(), call.index());
                     }
                 }
                 _ => {
