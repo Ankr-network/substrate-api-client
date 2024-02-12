@@ -41,7 +41,7 @@ pub(crate) fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, C
             let mut call_map = HashMap::new();
             match type_registry[calls.ty.id() as usize].ty().type_def() {
                 TypeDef::Variant(v) => {
-                    for (index, call) in v.variants().iter().enumerate() {
+                    for (_, call) in v.variants().iter().enumerate() {
                         call_map.insert(call.name().clone(), call.index());
                     }
                 }
@@ -68,8 +68,8 @@ pub(crate) fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, C
             let mut event_map = HashMap::new();
             match type_registry[events.ty.id() as usize].ty().type_def() {
                 TypeDef::Variant(v) => {
-                    for (index, call) in v.variants().iter().enumerate() {
-                        event_map.insert(index as u8, call.name().clone());
+                    for (_, call) in v.variants().iter().enumerate() {
+                        event_map.insert(call.index(), call.name().clone());
                     }
                 }
                 _ => {
@@ -96,8 +96,8 @@ pub(crate) fn parse_metadata_v14(meta: RuntimeMetadataV14) -> Result<Metadata, C
 
             match type_registry[errors.ty.id() as usize].ty().type_def() {
                 TypeDef::Variant(v) => {
-                    for (index, err) in v.variants().iter().enumerate() {
-                        error_map.insert(index as u8, err.name().clone());
+                    for (_, err) in v.variants().iter().enumerate() {
+                        error_map.insert(err.index(), err.name().clone());
                     }
                 }
                 _ => {
